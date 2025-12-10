@@ -4,23 +4,19 @@
 # Создает мост между Wi-Fi и Ethernet с DHCP для подключенных устройств
 # Обеспечивает двусторонний доступ к портам между устройствами
 
-# Configuration file
 CONFIG_FILE="/etc/ethernet-bridge.conf"
 
-# Default values
 WIFI_INTERFACE=""
 ETH_INTERFACE=""
 BRIDGE_NAME="br0"
 BRIDGE_IP="192.168.100.1/24"
 TEMP_DHCP_CONFIG="/tmp/dhcp_bridge.conf"
 
-# Function to load configuration
 load_config() {
     if [ -f "$CONFIG_FILE" ]; then
         print_status "Загрузка конфигурации из $CONFIG_FILE"
         source "$CONFIG_FILE"
     else
-        # Create default config file if it doesn't exist
         cat > "$CONFIG_FILE" << EOF
 # Configuration for ethernet-bridge
 # Uncomment and modify the following lines as needed
@@ -47,31 +43,25 @@ EOF
         print_status "Создан файл конфигурации по умолчанию: $CONFIG_FILE"
     fi
 
-    # Set defaults if not already set
     : ${DNS_SERVER:=8.8.8.8,8.8.4.4}
     : ${BANDWIDTH_LIMIT:=}
     : ${OPEN_PORTS:=}
 }
 
-# Определить текущую init-систему
 detect_init_system() {
     if [ -d "/run/systemd/system" ] || [ -f "/usr/lib/systemd/systemd" ] || [ -f "/lib/systemd/systemd" ]; then
         echo "systemd"
     elif [ -f "/etc/init.d/crond" ] || [ -d "/etc/init.d" ]; then
-        # Проверим, не OpenRC ли это (используется в Gentoo)
         if [ -f "/sbin/openrc" ] || [ -d "/etc/openrc" ]; then
             echo "openrc"
-        # Проверим, не s6 ли это
         elif [ -f "/usr/bin/s6-rc-status" ] || [ -d "/etc/s6" ]; then
             echo "s6"
-        # Проверим, не runit ли это
         elif [ -f "/run/runit/runsvdir/current" ] || [ -f "/etc/sv" ]; then
             echo "runit"
         else
             echo "sysv"
         fi
     else
-        # Если ничего не найдено, пробуем другие признаки
         if [ -f "/bin/runit" ]; then
             echo "runit"
         elif [ -f "/sbin/openrc" ]; then
@@ -79,13 +69,11 @@ detect_init_system() {
         elif [ -f "/usr/bin/s6-rc-status" ]; then
             echo "s6"
         else
-            # По умолчанию systemd, если не можем определить
             echo "systemd"
         fi
     fi
 }
 
-# Создать автозапуск через systemd
 create_systemd_service() {
     local service_file="/etc/systemd/system/ethernet-bridge.service"
 
@@ -112,7 +100,6 @@ EOF
     print_status "Служба systemd создана и включена"
 }
 
-# Создать автозапуск через OpenRC
 create_openrc_service() {
     local init_file="/etc/init.d/ethernet-bridge"
 
@@ -143,12 +130,10 @@ EOF
     print_status "Служба OpenRC создана и включена"
 }
 
-# Создать автозапуск через s6
 create_s6_service() {
     local service_dir="/etc/s6/ethernet-bridge"
     mkdir -p "$service_dir"
 
-    # Создаем run скрипт
     cat > "$service_dir/run" << 'EOF'
 #!/bin/execlineb -S0
 if { s6-test -f /usr/local/bin/ethernet-bridge }
@@ -161,12 +146,10 @@ EOF
     print_status "Служба s6 создана. Добавьте в автозапуск вручную, если требуется"
 }
 
-# Создать автозапуск через runit
 create_runit_service() {
     local service_dir="/etc/sv/ethernet-bridge"
     mkdir -p "$service_dir"
 
-    # Создаем run скрипт
     cat > "$service_dir/run" << 'EOF'
 #!/bin/sh
 exec 2>&1
@@ -175,7 +158,6 @@ EOF
 
     chmod +x "$service_dir/run"
 
-    # Создаем скрипт finish, если нужно
     cat > "$service_dir/finish" << 'EOF'
 #!/bin/sh
 exec /usr/local/bin/ethernet-bridge stop
@@ -183,7 +165,6 @@ EOF
 
     chmod +x "$service_dir/finish"
 
-    # Связываем с default
     if [ -d "/var/service" ]; then
         ln -sf "$service_dir" /var/service/
         print_status "Служба runit создана и включена"
@@ -192,7 +173,6 @@ EOF
     fi
 }
 
-# Создать автозапуск через SysV
 create_sysv_service() {
     local init_file="/etc/init.d/ethernet-bridge"
 
@@ -230,7 +210,6 @@ EOF
 
     chmod +x "$init_file"
 
-    # Добавляем в автозапуск в зависимости от дистрибутива
     if command -v chkconfig >/dev/null 2>&1; then
         chkconfig --add ethernet-bridge
         chkconfig ethernet-bridge on
@@ -244,7 +223,6 @@ EOF
     print_status "Служба SysV создана и включена"
 }
 
-# Создать автозапуск для текущей системы
 create_autostart() {
     local init_system=$(detect_init_system)
     print_status "Обнаружена init-система: $init_system"
@@ -272,7 +250,6 @@ create_autostart() {
     esac
 }
 
-# Удалить автозапуск
 remove_autostart() {
     local init_system=$(detect_init_system)
     print_status "Удаление автозапуска для init-системы: $init_system"
@@ -313,15 +290,12 @@ remove_autostart() {
     print_status "Автозапуск удален для $init_system"
 }
 
-# Установить автодополнение для zsh
 install_zsh_completion() {
     local completion_dir="/usr/share/zsh/site-functions"
     local completion_file="_ethernet-bridge"
 
-    # Создаем директорию, если её нет
     mkdir -p "$completion_dir"
 
-    # Создаем файл автодополнения
     cat > "$completion_dir/$completion_file" << 'EOF'
 #compdef ethernet-bridge
 
@@ -388,20 +362,16 @@ EOF
 
     print_status "Автодополнение для zsh установлено в $completion_dir/$completion_file"
 
-    # Обновляем кэш автодополнения
     compinit 2>/dev/null || true
     print_status "Кэш автодополнения zsh обновлен"
 }
 
-# Установить автодополнение для fish
 install_fish_completion() {
     local completion_dir="/usr/share/fish/completions"
     local completion_file="ethernet-bridge.fish"
 
-    # Создаем директорию, если её нет
     mkdir -p "$completion_dir"
 
-    # Создаем файл автодополнения
     cat > "$completion_dir/$completion_file" << 'EOF'
 # Команды для ethernet-bridge
 complete -c ethernet-bridge -f -n "__fish_use_subcommand" -a "start" -d "Запустить мост с DHCP и двусторонним доступом к портам"
@@ -440,24 +410,18 @@ EOF
     print_status "Автодополнение для fish установлено в $completion_dir/$completion_file"
 }
 
-# Перезапустить мост (только если он запущен)
 restart_bridge_if_needed() {
-    # Проверяем, запущен ли мост
     if ip link show "$BRIDGE_NAME" &>/dev/null; then
         print_status "Перезапуск моста для применения изменений..."
 
-        # Сохраняем временные настройки
         local temp_dns="$DNS_SERVER"
         local temp_bandwidth_limit="$BANDWIDTH_LIMIT"
         local temp_open_ports="$OPEN_PORTS"
 
-        # Останавливаем мост
         stop_bridge_dhcp
 
-        # Ждем немного перед перезапуском
         sleep 2
 
-        # Запускаем мост с сохраненными настройками
         setup_bridge_dhcp
 
         print_status "Мост перезапущен с новыми настройками"
@@ -466,12 +430,10 @@ restart_bridge_if_needed() {
     fi
 }
 
-# Применить настройки портов из конфига
 apply_port_config() {
     if [ -n "${OPEN_PORTS:-}" ]; then
         print_status "Применение настроек открытых портов из конфига: $OPEN_PORTS"
 
-        # Преобразуем список портов в массив и открываем каждый
         IFS=',' read -ra ports <<< "$OPEN_PORTS"
         for port in "${ports[@]}"; do
             if [ -n "$port" ]; then
@@ -496,7 +458,6 @@ check_root() {
     fi
 }
 
-# Check if required commands exist
 check_dependencies() {
     local missing_commands=()
 
@@ -523,12 +484,10 @@ check_dependencies() {
     fi
 }
 
-# Сохраняем конфиг
 save_config() {
     local config_backup="$CONFIG_FILE.backup"
     cp "$CONFIG_FILE" "$config_backup" 2>/dev/null || true
 
-    # Create new config from current variables
     {
         echo "# Configuration for ethernet-bridge"
         echo "# Generated on $(date)"
@@ -546,7 +505,6 @@ save_config() {
         [ -n "$BANDWIDTH_LIMIT" ] && echo "BANDWIDTH_LIMIT=\"$BANDWIDTH_LIMIT\"" || echo "# BANDWIDTH_LIMIT=\"\""
         echo ""
         echo "# STATIC IP CONFIGURATION"
-        # Выводим все переменные STATIC_IP из текущего окружения
         if [ -n "${STATIC_IP_MAC:-}" ]; then
             echo "STATIC_IP_MAC=\"${STATIC_IP_MAC}\""
         fi
@@ -565,7 +523,6 @@ save_config() {
         echo "# Если нужно больше статических IP, добавьте их вручную"
         echo ""
         echo "# PORT CONFIGURATION"
-        # Выводим открытые порты
         [ -n "${OPEN_PORTS:-}" ] && echo "OPEN_PORTS=\"${OPEN_PORTS}\"" || echo "# OPEN_PORTS=\"80,443,8000,8080\""
     } > "$CONFIG_FILE"
 
@@ -573,7 +530,6 @@ save_config() {
     print_status "Резервная копия старой конфигурации: $config_backup"
 }
 
-# Получить описание команды
 get_command_description() {
     local cmd="$1"
     case "$cmd" in
@@ -623,7 +579,6 @@ get_command_description() {
     esac
 }
 
-# Показать описание команды
 show_command_info() {
     local cmd="$1"
     if [ -z "$cmd" ]; then
@@ -640,11 +595,9 @@ show_command_info() {
     fi
 }
 
-# Clean up any existing bridge to avoid conflicts
 cleanup_existing_bridge() {
     print_status "Проверка существующего моста и очистка конфликтов..."
 
-    # Check if the bridge already exists
     if ip link show "$BRIDGE_NAME" &>/dev/null; then
         print_status "Мост $BRIDGE_NAME уже существует, останавливаем и удаляем..."
         ip link set "$BRIDGE_NAME" down 2>/dev/null || true
@@ -652,7 +605,6 @@ cleanup_existing_bridge() {
         brctl delbr "$BRIDGE_NAME" 2>/dev/null || true
     fi
 
-    # Check if interface is already part of a bridge
     BRIDGES=$(brctl show 2>/dev/null | grep -E "\s+$ETH_INTERFACE\s+" | awk '{print $1}' | head -1)
     if [ -n "$BRIDGES" ]; then
         print_status "Интерфейс $ETH_INTERFACE уже подключен к мосту $BRIDGES, отключаем..."
@@ -662,7 +614,6 @@ cleanup_existing_bridge() {
         done
     fi
 
-    # Check if the bridge IP is already assigned to another interface
     CONFLICTING_INTERFACE=$(ip addr show 2>/dev/null | grep -B 1 "$BRIDGE_IP" | head -1 | awk '{print $2}' | sed 's/://')
     if [ -n "$CONFLICTING_INTERFACE" ] && [ "$CONFLICTING_INTERFACE" != "$BRIDGE_NAME" ]; then
         print_status "IP $BRIDGE_IP уже назначен интерфейсу $CONFLICTING_INTERFACE, освобождаем..."
@@ -670,10 +621,9 @@ cleanup_existing_bridge() {
     fi
 }
 
-# Определение интерфейсов
 detect_interfaces() {
     print_status "Определение сетевых интерфейсов..."
-    
+
     for iface in $(ls /sys/class/net/); do
         if [[ $iface =~ ^wlan[0-9]+|^wlp[0-9]+ ]]; then
             if ip addr show $iface | grep -q 'inet '; then
@@ -682,14 +632,14 @@ detect_interfaces() {
             fi
         fi
     done
-    
+
     for iface in $(ls /sys/class/net/); do
         if [[ $iface =~ ^eth[0-9]+|^enp[0-9]+|^eno[0-9]+ ]]; then
             ETH_INTERFACE=$iface
             break
         fi
     done
-    
+
     if [ -z "$WIFI_INTERFACE" ] || [ -z "$ETH_INTERFACE" ]; then
         print_error "Не удалось автоматически определить интерфейсы"
         read -p "Введите Wi-Fi интерфейс (например, wlan0): " WIFI_INTERFACE
@@ -699,57 +649,42 @@ detect_interfaces() {
     fi
 }
 
-# Настройка моста с DHCP
 setup_bridge_dhcp() {
     print_status "Настройка моста с DHCP..."
 
-    # Clean up any existing bridge to avoid conflicts
     cleanup_existing_bridge
 
-    # Остановка существующего dnsmasq
     pkill -f "dnsmasq.*dhcp_bridge.conf" 2>/dev/null || true
 
-    # Создание моста
     brctl addbr $BRIDGE_NAME 2>/dev/null || true
     brctl addif $BRIDGE_NAME $ETH_INTERFACE 2>/dev/null
     brctl stp $BRIDGE_NAME on 2>/dev/null
 
-    # Назначение IP мосту
     ip addr add $BRIDGE_IP dev $BRIDGE_NAME 2>/dev/null
     ip link set $BRIDGE_NAME up 2>/dev/null
 
-    # Включение IP forwarding
     echo 1 > /proc/sys/net/ipv4/ip_forward
     if ! grep -q "net.ipv4.ip_forward=1" /etc/sysctl.conf; then
         echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
     fi
 
-    # Настройка NAT (for internet access)
     iptables -t nat -A POSTROUTING -o $WIFI_INTERFACE -j MASQUERADE 2>/dev/null
 
-    # Allow traffic from bridge to wifi (second PC to internet)
     iptables -A FORWARD -i $BRIDGE_NAME -o $WIFI_INTERFACE -j ACCEPT 2>/dev/null
-    # Allow traffic from wifi to bridge for established connections (internet to second PC)
     iptables -A FORWARD -i $WIFI_INTERFACE -o $BRIDGE_NAME -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null
 
-    # Allow traffic between bridge and host PC to enable access to second PC services
     iptables -A FORWARD -i $WIFI_INTERFACE -o $BRIDGE_NAME -d 192.168.100.0/24 -j ACCEPT 2>/dev/null
 
-    # Allow the host PC to initiate connections to the second PC (bidirectional access)
     iptables -A FORWARD -i $BRIDGE_NAME -o $WIFI_INTERFACE -s 192.168.100.0/24 -j ACCEPT 2>/dev/null
 
-    # Правила для доступа к портам второго ПК с первого ПК и наоборот
     iptables -A INPUT -i $BRIDGE_NAME -j ACCEPT 2>/dev/null
     iptables -A OUTPUT -o $BRIDGE_NAME -j ACCEPT 2>/dev/null
 
-    # Правила для полного доступа к портам второго ПК
-    # Это позволяет первому ПК подключаться к сервисам на втором ПК
     iptables -A FORWARD -p tcp -s 192.168.100.0/24 -j ACCEPT 2>/dev/null
     iptables -A FORWARD -p udp -s 192.168.100.0/24 -j ACCEPT 2>/dev/null
     iptables -A FORWARD -p tcp -d 192.168.100.0/24 -j ACCEPT 2>/dev/null
     iptables -A FORWARD -p udp -d 192.168.100.0/24 -j ACCEPT 2>/dev/null
-    
-    # Создание конфигурации DHCP
+
     cat > $TEMP_DHCP_CONFIG << EOF
 interface=$BRIDGE_NAME
 dhcp-range=192.168.100.100,192.168.100.200,12h
@@ -758,13 +693,10 @@ dhcp-option=option:dns-server,${DNS_SERVER:-8.8.8.8,8.8.4.4}
 log-dhcp
 EOF
 
-    # Добавляем статические IP-адреса, если они были настроены ранее
     if [ -f /etc/dnsmasq.conf ] && [ -s /etc/dnsmasq.conf ]; then
-        # Копируем только статические адреса из существующего файла
         grep "^dhcp-host=" /etc/dnsmasq.conf >> $TEMP_DHCP_CONFIG 2>/dev/null || true
     fi
 
-    # Добавляем статические IP-адреса из конфигурации
     if [ -n "${STATIC_IP_MAC:-}" ]; then
         echo "dhcp-host=$(echo ${STATIC_IP_MAC} | cut -d',' -f1),$(echo ${STATIC_IP_MAC} | cut -d',' -f2)" >> $TEMP_DHCP_CONFIG
     fi
@@ -780,48 +712,37 @@ EOF
     if [ -n "${STATIC_IP_MAC5:-}" ]; then
         echo "dhcp-host=$(echo ${STATIC_IP_MAC5} | cut -d',' -f1),$(echo ${STATIC_IP_MAC5} | cut -d',' -f2)" >> $TEMP_DHCP_CONFIG
     fi
-    
-    # Применение конфигурации
+
     cp $TEMP_DHCP_CONFIG /etc/dnsmasq.conf
-    
-    # Создание директории для файла аренды
+
     mkdir -p /var/lib/misc
 
-    # Запуск dnsmasq как отдельного процесса (для Void Linux с runit)
     dnsmasq -C /etc/dnsmasq.conf
 
     print_status "Мост настроен! Подключенные устройства получат IP автоматически"
 
-    # Применить ограничение пропускной способности, если оно задано в конфиге
     if [ -n "${BANDWIDTH_LIMIT:-}" ]; then
         print_status "Применение ограничения пропускной способности: $BANDWIDTH_LIMIT"
         limit_bandwidth "$BANDWIDTH_LIMIT"
     fi
 
-    # Применить настройки портов из конфига
     apply_port_config
 }
 
-# Остановка моста
 stop_bridge_dhcp() {
     print_status "Полная остановка моста и DHCP..."
 
-    # Полная остановка dnsmasq
     pkill -f "dnsmasq" 2>/dev/null
-    # Убиваем все процессы dnsmasq принудительно
     killall -9 dnsmasq 2>/dev/null || true
 
-    # Удаление всех правил iptables
     iptables -t nat -F 2>/dev/null
     iptables -t mangle -F 2>/dev/null
     iptables -F 2>/dev/null
     iptables -X 2>/dev/null
 
-    # Восстановление настроек IP forwarding
     echo 0 > /proc/sys/net/ipv4/ip_forward
     sed -i '/net\.ipv4\.ip_forward/d' /etc/sysctl.conf
 
-    # Удаление моста и его интерфейсов
     if ip link show "$BRIDGE_NAME" &>/dev/null; then
         print_status "Остановка и удаление моста $BRIDGE_NAME..."
         ip link set "$BRIDGE_NAME" down 2>/dev/null || true
@@ -831,7 +752,6 @@ stop_bridge_dhcp() {
         print_status "Мост $BRIDGE_NAME не существует, пропускаем удаление..."
     fi
 
-    # Удаление файлов конфигурации и аренды
     rm -f $TEMP_DHCP_CONFIG 2>/dev/null
     rm -f /etc/dnsmasq.conf 2>/dev/null
     rm -f /var/lib/misc/dnsmasq.leases 2>/dev/null
@@ -839,7 +759,6 @@ stop_bridge_dhcp() {
     print_status "Полная остановка завершена"
 }
 
-# Настроить статический IP для конкретного MAC-адреса
 set_static_ip() {
     local mac_address="$1"
     local ip_address="$2"
@@ -850,13 +769,11 @@ set_static_ip() {
         return 1
     fi
 
-    # Проверка формата MAC-адреса
     if ! [[ $mac_address =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
         print_error "Неверный формат MAC-адреса: $mac_address"
         return 1
     fi
 
-    # Проверка формата IP-адреса
     if ! [[ $ip_address =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         print_error "Неверный формат IP-адреса: $ip_address"
         return 1
@@ -864,12 +781,9 @@ set_static_ip() {
 
     print_status "Добавление статического IP $ip_address для MAC $mac_address..."
 
-    # Обновляем конфигурацию DHCP
     local dnsmasq_config="/etc/dnsmasq.conf"
     if [ -f "$dnsmasq_config" ]; then
-        # Проверяем, есть ли уже такая запись
         if ! grep -q "dhcp-host=$mac_address,$ip_address" "$dnsmasq_config"; then
-            # Добавляем запись в конфиг
             sed -i "/# Added by ethernet-bridge for static IPs/a dhcp-host=$mac_address,$ip_address" "$dnsmasq_config" 2>/dev/null || \
             echo "dhcp-host=$mac_address,$ip_address" >> "$dnsmasq_config"
         else
@@ -877,37 +791,29 @@ set_static_ip() {
         fi
     fi
 
-    # Сохраняем в конфиг
-    # Добавляем или обновляем переменную STATIC_IP_ в конфиге
     save_config_with_static_ip "$mac_address" "$ip_address"
 
-    # Перезапускаем мост, если он запущен, для применения изменений
     restart_bridge_if_needed
 
     print_status "Статический IP $ip_address назначен для MAC $mac_address"
 }
 
-# Save configuration with static IP
 save_config_with_static_ip() {
     local mac_address="$1"
     local ip_address="$2"
     local config_backup="$CONFIG_FILE.backup"
     cp "$CONFIG_FILE" "$config_backup" 2>/dev/null || true
 
-    # Читаем текущий конфиг
     {
-        # Выводим все строки, кроме старых STATIC_IP_ записей
         grep -v "^STATIC_IP_" "$config_backup" 2>/dev/null || echo "# Configuration for ethernet-bridge"
 
         echo ""
         echo "# STATIC IP CONFIGURATION"
-        # Выводим все существующие статические IP-адреса из переменных
         grep -E "^STATIC_IP_" "$config_backup" 2>/dev/null | while read -r line; do
             if [[ $line == STATIC_IP_* ]]; then
                 echo "$line"
             fi
         done
-        # Добавляем новый статический IP
         local next_number=1
         while [ -n "$(eval echo \${STATIC_IP_MAC$next_number:-})" ]; do
             next_number=$((next_number+1))
@@ -923,7 +829,6 @@ save_config_with_static_ip() {
     print_status "Конфигурация обновлена с новым статическим IP"
 }
 
-# Ограничить пропускную способность между ПК
 limit_bandwidth() {
     local rate="$1"
 
@@ -933,7 +838,6 @@ limit_bandwidth() {
         return 1
     fi
 
-    # Проверяем, установлен ли tc (traffic control)
     if ! command -v tc &> /dev/null; then
         print_error "Пакет tc не установлен. Установите его: apt install iproute2"
         return 1
@@ -941,34 +845,27 @@ limit_bandwidth() {
 
     print_status "Настройка ограничения пропускной способности на $rate..."
 
-    # Создаем HTB qdisc на интерфейсе моста
     tc qdisc add dev $BRIDGE_NAME root handle 1: htb default 30 2>/dev/null || \
     tc qdisc replace dev $BRIDGE_NAME root handle 1: htb default 30 2>/dev/null
 
-    # Добавляем класс с ограничением скорости
     tc class add dev $BRIDGE_NAME parent 1: classid 1:1 htb rate "$rate" 2>/dev/null
     tc class add dev $BRIDGE_NAME parent 1:1 classid 1:10 htb rate "$rate" ceil "$rate" 2>/dev/null
 
-    # Применяем фильтр для трафика
     tc filter add dev $BRIDGE_NAME protocol ip parent 1:0 prio 1 u32 match ip dst 192.168.100.0/24 flowid 1:10 2>/dev/null
     tc filter add dev $BRIDGE_NAME protocol ip parent 1:0 prio 1 u32 match ip src 192.168.100.0/24 flowid 1:10 2>/dev/null
 
-    # Сохраняем значение в конфиг
     BANDWIDTH_LIMIT="$rate"
     save_config
 
-    # Перезапускаем мост, если он запущен, для применения изменений
     restart_bridge_if_needed
 
     print_status "Пропускная способность ограничена до $rate"
 }
 
-# Снять ограничение пропускной способности
 remove_bandwidth_limit() {
     if command -v tc &> /dev/null; then
         tc qdisc del dev $BRIDGE_NAME root 2>/dev/null || true
 
-        # Убираем значение из конфига
         BANDWIDTH_LIMIT=""
         save_config
 
@@ -976,7 +873,6 @@ remove_bandwidth_limit() {
     fi
 }
 
-# Открыть конкретный порт для доступа
 open_port() {
     local port="$1"
     if [ -z "$port" ]; then
@@ -989,11 +885,9 @@ open_port() {
         return 1
     fi
 
-    # Проверяем, не открыт ли уже этот порт
     if iptables -C FORWARD -p tcp --dport "$port" -d 192.168.100.0/24 -j ACCEPT 2>/dev/null ||
        iptables -C FORWARD -p udp --dport "$port" -d 192.168.100.0/24 -j ACCEPT 2>/dev/null; then
         print_status "Порт $port уже открыт"
-        # Добавляем в конфиг, если его там еще нет
         add_port_to_config "$port"
         return 0
     fi
@@ -1002,32 +896,25 @@ open_port() {
     iptables -A FORWARD -p tcp --dport "$port" -d 192.168.100.0/24 -j ACCEPT 2>/dev/null || true
     iptables -A FORWARD -p udp --dport "$port" -d 192.168.100.0/24 -j ACCEPT 2>/dev/null || true
 
-    # Добавляем в конфиг
     add_port_to_config "$port"
 
     print_status "Порт $port открыт для доступа"
 }
 
-# Добавить порт в конфиг
 add_port_to_config() {
     local port="$1"
 
-    # Если переменная OPEN_PORTS пуста, просто устанавливаем порт
     if [ -z "${OPEN_PORTS:-}" ]; then
         OPEN_PORTS="$port"
     else
-        # Проверяем, нет ли уже этого порта в списке
         if ! echo "$OPEN_PORTS" | grep -q "\b$port\b"; then
-            # Добавляем порт к существующему списку
             OPEN_PORTS="$OPEN_PORTS,$port"
         fi
     fi
 
-    # Сохраняем конфиг без перезапуска (открытие/закрытие портов не требует перезапуска моста)
     save_config
 }
 
-# Закрыть конкретный порт
 close_port() {
     local port="$1"
     if [ -z "$port" ]; then
@@ -1042,40 +929,31 @@ close_port() {
 
     print_status "Закрытие порта $port для доступа к подключенным устройствам..."
 
-    # Удаляем правила для закрытия порта
     iptables -D FORWARD -p tcp --dport "$port" -d 192.168.100.0/24 -j ACCEPT 2>/dev/null || true
     iptables -D FORWARD -p udp --dport "$port" -d 192.168.100.0/24 -j ACCEPT 2>/dev/null || true
 
-    # Удаляем из конфига
     remove_port_from_config "$port"
 
     print_status "Порт $port закрыт для доступа"
 }
 
-# Удалить порт из конфига
 remove_port_from_config() {
     local port="$1"
 
-    # Если переменная OPEN_PORTS не пуста
     if [ -n "${OPEN_PORTS:-}" ]; then
-        # Удаляем указанный порт из списка
         OPEN_PORTS=$(echo "$OPEN_PORTS" | sed "s/\b$port\b//g" | sed 's/,,/,/g' | sed 's/^,//' | sed 's/,$//')
 
-        # Если после удаления осталась только запятая или пустая строка, обнуляем переменную
         if [ "$OPEN_PORTS" = "" ] || [ "$OPEN_PORTS" = "," ]; then
             OPEN_PORTS=""
         fi
     fi
 
-    # Сохраняем конфиг без перезапуска (открытие/закрытие портов не требует перезапуска моста)
     save_config
 }
 
-# Список открытых портов
 list_open_ports() {
     echo "=== Открытые порты для доступа к подключенным устройствам ==="
 
-    # Получаем список открытых портов из iptables
     local tcp_ports=$(iptables -L FORWARD -n -v --line-numbers | grep -E "ACCEPT.*192.168.100.0/24.*dpt:" | grep tcp | grep -oE "dpt:[0-9]+" | cut -d: -f2 | sort -n | uniq)
     local udp_ports=$(iptables -L FORWARD -n -v --line-numbers | grep -E "ACCEPT.*192.168.100.0/24.*dpt:" | grep udp | grep -oE "dpt:[0-9]+" | cut -d: -f2 | sort -n | uniq)
 
@@ -1102,7 +980,6 @@ list_open_ports() {
     fi
 }
 
-# Настроить DNS-сервер для устройств на мосту
 set_dns() {
     local dns_server="$1"
 
@@ -1112,7 +989,6 @@ set_dns() {
         return 1
     fi
 
-    # Проверка формата IP-адреса
     if ! [[ $dns_server =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         print_error "Неверный формат IP-адреса: $dns_server"
         return 1
@@ -1120,19 +996,14 @@ set_dns() {
 
     print_status "Настройка DNS-сервера $dns_server для подключенных устройств..."
 
-    # Обновляем переменную в конфиге
     DNS_SERVER="$dns_server"
 
-    # Сохраняем конфиг
     save_config
 
-    # Обновляем конфигурацию DHCP
     local dnsmasq_config="/etc/dnsmasq.conf"
 
-    # Удаляем старую DNS-настройку, если она есть
     sed -i '/^dhcp-option=option:dns-server/d' "$dnsmasq_config" 2>/dev/null
 
-    # Добавляем новую DNS-настройку
     if [ -f "$dnsmasq_config" ]; then
         sed -i "/interface=$BRIDGE_NAME/a dhcp-option=option:dns-server,$dns_server" "$dnsmasq_config"
     else
@@ -1140,13 +1011,11 @@ set_dns() {
         return 1
     fi
 
-    # Перезапускаем мост, если он запущен, для применения изменений
     restart_bridge_if_needed
 
     print_status "DNS-сервер $dns_server установлен для подключенных устройств"
 }
 
-# Показать логи
 show_logs() {
     echo "=== Сетевые логи ==="
 
@@ -1156,7 +1025,6 @@ show_logs() {
     elif [ -f /tmp/dnsmasq.log ]; then
         tail -n 20 /tmp/dnsmasq.log 2>/dev/null
     else
-        # Проверяем логи через journalctl
         if command -v journalctl &> /dev/null; then
             journalctl -u dnsmasq --no-pager -n 20 2>/dev/null || echo "Лог dnsmasq не найден"
         else
@@ -1180,7 +1048,6 @@ show_logs() {
     ip route | grep -E "(192.168.100|br0|bridge)" || echo "Специфические маршруты не найдены"
 }
 
-# Показать активные правила iptables (порт форвардинг)
 show_iptables_rules() {
     echo "=== Активные правила iptables ==="
     if command -v iptables &> /dev/null; then
@@ -1197,7 +1064,6 @@ show_iptables_rules() {
     fi
 }
 
-# Показать подключенные устройства
 show_devices() {
     echo "=== Подключенные устройства ==="
     if ip link show $BRIDGE_NAME >/dev/null 2>&1; then
@@ -1226,7 +1092,6 @@ show_devices() {
     fi
 }
 
-# Проверка статуса
 show_status() {
     echo "=== Статус моста ==="
     echo "IP forwarding: $(cat /proc/sys/net/ipv4/ip_forward)"
@@ -1238,7 +1103,6 @@ show_status() {
     fi
 }
 
-# Главная функция
 main() {
     check_root
     load_config
@@ -1263,14 +1127,12 @@ main() {
             setup_bridge_dhcp
             ;;
         "devices")
-            # Для команды devices не нужно определять интерфейсы, просто показываем устройства
             show_devices
             ;;
         "rules")
             show_iptables_rules
             ;;
         "port")
-            # Для работы с портами не требуются определённые интерфейсы
             case "$2" in
                 "open")
                     open_port "$3"
@@ -1287,22 +1149,18 @@ main() {
             esac
             ;;
         "static-ip")
-            # Для статических IP не требуются определённые интерфейсы
             set_static_ip "$2" "$3"
             ;;
         "limit-bandwidth")
-            # Для ограничения пропускной способности не требуются определённые интерфейсы
             limit_bandwidth "$2"
             ;;
         "remove-bandwidth-limit")
-            # Для снятия ограничения пропускной способности не требуются определённые интерфейсы
             remove_bandwidth_limit
             ;;
         "logs")
             show_logs
             ;;
         "set-dns")
-            # Для установки DNS не требуются определённые интерфейсы
             set_dns "$2"
             ;;
         "autostart")
