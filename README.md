@@ -1,161 +1,165 @@
 # Ethernet Bridge
 
-Универсальный скрипт настройки сетевого моста для Linux систем, обеспечивающий двусторонний доступ к портам между устройствами. Создает мост между Wi-Fi и Ethernet с DHCP для подключенных устройств.
+## Other Languages
 
-## Основные возможности
+- [Русская версия](README.ru.md)
 
-- Создание сетевого моста между Wi-Fi и Ethernet интерфейсами
-- Поддержка DHCP для автоматического назначения IP-адресов подключенным устройствам
-- Двусторонний доступ к портам между устройствами
-- Поддержка различных Linux-дистрибутивов (Void Linux, Debian, Ubuntu, CentOS, Arch Linux и др.)
-- Гибкая настройка через команды и конфигурационный файл
-- Автоматическое определение используемой init-системы для автозапуска
-- Возможность настройки статических IP-адресов для конкретных устройств
-- Поддержка управления пропускной способностью сети
-- Интеграция с популярными системами инициализации (systemd, OpenRC, s6, runit, SysV)
+A universal network bridge setup script for Linux systems, providing bidirectional port access between devices. Creates a bridge between Wi-Fi and Ethernet with DHCP for connected devices.
 
-## Установка
+## Main Features
 
-### С помощью Make:
+- Creation of a network bridge between Wi-Fi and Ethernet interfaces
+- DHCP support for automatic IP address assignment to connected devices
+- Bidirectional port access between devices
+- Support for various Linux distributions (Void Linux, Debian, Ubuntu, CentOS, Arch Linux, etc.)
+- Flexible configuration through commands and configuration file
+- Automatic detection of the used init system for autostart
+- Ability to configure static IP addresses for specific devices
+- Network bandwidth management support
+- Integration with popular init systems (systemd, OpenRC, s6, runit, SysV)
+
+## Installation
+
+### Using Make:
 
 ```bash
 make install
 ```
 
-### Вручную:
+### Manually:
 
 ```bash
 sudo cp src/ethernet-bridge /usr/local/bin/
 sudo chmod +x /usr/local/bin/ethernet-bridge
 ```
 
-## Обновление
+## Update
 
-Чтобы обновить скрипт до последней версии, вы можете выполнить следующие действия:
+To update the script to the latest version, you can perform the following actions:
 
-1. Обновите репозиторий:
+1. Update the repository:
    ```bash
    git pull origin main
    ```
 
-2. Переустановите скрипт:
+2. Reinstall the script:
    ```bash
    make install
    ```
 
-## Использование
+## Usage
 
-### Основные команды
+### Main Commands
 
-УПРАВЛЕНИЕ МОСТОМ:
-- start - запуск моста
-- stop - остановка моста
-- restart - перезапуск моста
-- status - проверка статуса моста
+BRIDGE MANAGEMENT:
+- start - start the bridge
+- stop - stop the bridge
+- restart - restart the bridge
+- status - check bridge status
 
-ИНФОРМАЦИЯ И СТАТУС:
-- devices - отображение информации об устройствах
-- rules - показ активных правил
-- logs - просмотр логов
+INFORMATION AND STATUS:
+- devices - display device information
+- rules - show active rules
+- logs - view logs
 
-УПРАВЛЕНИЕ ПОРТАМИ:
-- port open <порт> - открытие порта
-- port close <порт> - закрытие порта
-- port list-open - список открытых портов
+PORT MANAGEMENT:
+- port open <port> - open a port
+- port close <port> - close a port
+- port list-open - list open ports
 
-КОНФИГУРАЦИЯ ПОДКЛЮЧЕНИЙ:
-- static-ip <MAC> <IP> - назначение статического IP для MAC-адреса
-- set-dns <IP> - установка DNS сервера
+CONNECTION CONFIGURATION:
+- static-ip <MAC> <IP> - assign a static IP for a MAC address
+- set-dns <IP> - set DNS server
 
-СЕТЕВЫЕ НАСТРОЙКИ:
-- limit-bandwidth <rate> - ограничение пропускной способности
-- remove-bandwidth-limit - удаление ограничений пропускной способности
+NETWORK SETTINGS:
+- limit-bandwidth <rate> - limit bandwidth
+- remove-bandwidth-limit - remove bandwidth limits
 
-СИСТЕМНЫЕ НАСТРОЙКИ:
-- autostart enable - включение автозапуска
-- autostart disable - отключение автозапуска
-- info <команда> - получение информации о системе
+SYSTEM SETTINGS:
+- autostart enable - enable autostart
+- autostart disable - disable autostart
+- info <command> - get system information
 
-### Примеры использования
+### Usage Examples
 
-- Запустить мост: `sudo ethernet-bridge start`
-- Проверить статус: `sudo ethernet-bridge status`
-- Перезапустить мост: `sudo ethernet-bridge restart`
-- Показать подключенные устройства: `sudo ethernet-bridge devices`
-- Показать активные правила: `sudo ethernet-bridge rules`
-- Просмотреть логи: `sudo ethernet-bridge logs`
-- Открыть порт: `sudo ethernet-bridge port open 8000`
-- Закрыть порт: `sudo ethernet-bridge port close 8000`
-- Показать открытые порты: `sudo ethernet-bridge port list-open`
-- Назначить статический IP: `sudo ethernet-bridge static-ip aa:bb:cc:dd:ee:ff 192.168.100.100`
-- Установить DNS: `sudo ethernet-bridge set-dns 8.8.8.8`
-- Ограничить пропускную способность: `sudo ethernet-bridge limit-bandwidth 10mbps`
-- Удалить ограничение пропускной способности: `sudo ethernet-bridge remove-bandwidth-limit`
-- Включить автозапуск: `sudo ethernet-bridge autostart enable`
-- Отключить автозапуск: `sudo ethernet-bridge autostart disable`
-- Получить информацию о системе: `sudo ethernet-bridge info network`
+- Start the bridge: `sudo ethernet-bridge start`
+- Check status: `sudo ethernet-bridge status`
+- Restart the bridge: `sudo ethernet-bridge restart`
+- Show connected devices: `sudo ethernet-bridge devices`
+- Show active rules: `sudo ethernet-bridge rules`
+- View logs: `sudo ethernet-bridge logs`
+- Open a port: `sudo ethernet-bridge port open 8000`
+- Close a port: `sudo ethernet-bridge port close 8000`
+- Show open ports: `sudo ethernet-bridge port list-open`
+- Assign a static IP: `sudo ethernet-bridge static-ip aa:bb:cc:dd:ee:ff 192.168.100.100`
+- Set DNS: `sudo ethernet-bridge set-dns 8.8.8.8`
+- Limit bandwidth: `sudo ethernet-bridge limit-bandwidth 10mbps`
+- Remove bandwidth limit: `sudo ethernet-bridge remove-bandwidth-limit`
+- Enable autostart: `sudo ethernet-bridge autostart enable`
+- Disable autostart: `sudo ethernet-bridge autostart disable`
+- Get system information: `sudo ethernet-bridge info network`
 
-### Автозапуск
+### Autostart
 
-Скрипт автоматически определяет используемую init-систему (systemd, OpenRC, s6, runit, SysV) и создает соответствующую службу автозапуска:
+The script automatically detects the used init system (systemd, OpenRC, s6, runit, SysV) and creates the appropriate autostart service:
 
 ```bash
-# Включить автозапуск
+# Enable autostart
 sudo ethernet-bridge autostart enable
 
-# Отключить автозапуск
+# Disable autostart
 sudo ethernet-bridge autostart disable
 ```
 
-После включения автозапуска мост будет автоматически запускаться при загрузке системы.
+After enabling autostart, the bridge will automatically start when the system boots.
 
-## Конфигурация
+## Configuration
 
-Скрипт поддерживает конфигурационный файл `/etc/ethernet-bridge.conf`, где можно задать:
+The script supports a configuration file `/etc/ethernet-bridge.conf` where you can set:
 
-- Сетевые интерфейсы
-- Настройки DNS
-- Статические IP-адреса
-- Ограничения пропускной способности
-- Открытые порты
+- Network interfaces
+- DNS settings
+- Static IP addresses
+- Bandwidth limits
+- Open ports
 
-Пример конфигурационного файла:
+Example configuration file:
 
 ```
-# Интерфейсы
+# Interfaces
 WIFI_INTERFACE=wlan0
 ETHERNET_INTERFACE=eth0
 
-# Настройки моста
+# Bridge settings
 BRIDGE_NAME=br0
 BRIDGE_IP=192.168.100.1/24
 
-# DNS сервера
+# DNS servers
 DNS_SERVERS="8.8.8.8, 8.8.4.4"
 
-# Пропускная способность
+# Bandwidth
 BANDWIDTH_LIMIT=100mbps
 
-# Статические IP-адреса (MAC=IP)
+# Static IP addresses (MAC=IP)
 STATIC_IPS=(
     "aa:bb:cc:dd:ee:ff=192.168.100.100"
     "11:22:33:44:55:66=192.168.100.101"
 )
 ```
 
-## Зависимости
+## Dependencies
 
-Для работы скрипта требуются:
+The script requires the following to work:
 
 - bridge-utils
 - dnsmasq
 - iptables
-- iproute2 (для команды tc, если используется ограничение пропускной способности)
-- dhcpcd или dhcpclient (для получения IP-адреса для Wi-Fi интерфейса)
+- iproute2 (for tc command if bandwidth limiting is used)
+- dhcpcd or dhcpclient (to obtain IP address for Wi-Fi interface)
 
-## Поддерживаемые дистрибутивы
+## Supported Distributions
 
-Скрипт тестировался и работает на следующих дистрибутивах Linux:
+The script has been tested and works on the following Linux distributions:
 
 - Void Linux
 - Debian
@@ -167,24 +171,28 @@ STATIC_IPS=(
 - OpenSUSE
 - Mint
 
-## Устранение неполадок
+## Troubleshooting
 
-Если возникают проблемы с работой моста:
+If you encounter problems with the bridge operation:
 
-1. Проверьте статус: `sudo ethernet-bridge status`
-2. Посмотрите логи: `sudo ethernet-bridge logs`
-3. Проверьте сетевые интерфейсы: `ip addr show`
-4. Убедитесь, что интерфейсы правильно указаны в конфигурации
-5. Проверьте, запущены ли необходимые службы (dnsmasq, iptables)
+1. Check status: `sudo ethernet-bridge status`
+2. View logs: `sudo ethernet-bridge logs`
+3. Check network interfaces: `ip addr show`
+4. Make sure interfaces are correctly specified in the configuration
+5. Check if required services are running (dnsmasq, iptables)
 
-## Автор
+## Author
 
 Porkof Nelson
 
-## Обновления
+## Updates
 
-Последнее обновление: добавлена функция автопоиска интерфейсов.
+Latest update: Added automatic interface detection feature.
 
-## Лицензия
+## License
 
 GPL-3.0
+
+## Other Languages
+
+- [Русская версия](README.ru.md)
